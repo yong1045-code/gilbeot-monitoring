@@ -1,11 +1,11 @@
-name: Build Gilbeot Monitoring APK v1.08
+name: Build Gilbeot Monitoring APK v1.09
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'Gilbeot-project-v1.08.txt'
+      - 'Gilbeot-project-v1.09.txt'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -32,21 +32,39 @@ jobs:
 
       - name: Restore Android project
         run: |
-          base64 -d Gilbeot-project-v1.08.txt > project.zip
+          base64 -d Gilbeot-project-v1.09.txt > project.zip
           unzip -q project.zip
-          cp -a gilbeot-monitoring-v1.08/. .
+          cp -a gilbeot-monitoring-v1.09/. .
 
-      - name: Build debug APK
-        run: gradle assembleDebug --stacktrace
+      - name: Restore permanent signing key
+        env:
+          GILBEOT_KEYSTORE_BASE64: ${{ secrets.GILBEOT_KEYSTORE_BASE64 }}
+          GILBEOT_STORE_PASSWORD: ${{ secrets.GILBEOT_STORE_PASSWORD }}
+          GILBEOT_KEY_ALIAS: ${{ secrets.GILBEOT_KEY_ALIAS }}
+          GILBEOT_KEY_PASSWORD: ${{ secrets.GILBEOT_KEY_PASSWORD }}
+        run: |
+          test -n "$GILBEOT_KEYSTORE_BASE64" || (echo "Missing GILBEOT_KEYSTORE_BASE64 secret" && exit 1)
+          test -n "$GILBEOT_STORE_PASSWORD" || (echo "Missing GILBEOT_STORE_PASSWORD secret" && exit 1)
+          test -n "$GILBEOT_KEY_ALIAS" || (echo "Missing GILBEOT_KEY_ALIAS secret" && exit 1)
+          test -n "$GILBEOT_KEY_PASSWORD" || (echo "Missing GILBEOT_KEY_PASSWORD secret" && exit 1)
+          echo "$GILBEOT_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/gilbeot-release-key.jks"
+          echo "GILBEOT_KEYSTORE_PATH=$RUNNER_TEMP/gilbeot-release-key.jks" >> "$GITHUB_ENV"
+
+      - name: Build signed release APK
+        env:
+          GILBEOT_STORE_PASSWORD: ${{ secrets.GILBEOT_STORE_PASSWORD }}
+          GILBEOT_KEY_ALIAS: ${{ secrets.GILBEOT_KEY_ALIAS }}
+          GILBEOT_KEY_PASSWORD: ${{ secrets.GILBEOT_KEY_PASSWORD }}
+        run: gradle assembleRelease --stacktrace
 
       - name: Rename APK
         run: |
-          mv app/build/outputs/apk/debug/app-debug.apk \
-             app/build/outputs/apk/debug/길벗모니터링-v1.08.apk
+          mv app/build/outputs/apk/release/app-release.apk \
+             app/build/outputs/apk/release/길벗모니터링-v1.09.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gilbeot-monitoring-v1.08-apk
-          path: app/build/outputs/apk/debug/길벗모니터링-v1.08.apk
+          name: gilbeot-monitoring-v1.09-apk
+          path: app/build/outputs/apk/release/길벗모니터링-v1.09.apk
           if-no-files-found: error
