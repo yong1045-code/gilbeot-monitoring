@@ -1,0 +1,52 @@
+name: Build Gilbeot Monitoring APK v1.07
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'Gilbeot-project-v1.07.txt'
+      - '.github/workflows/build-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.10.2
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Restore Android project
+        run: |
+          base64 -d Gilbeot-project-v1.07.txt > project.zip
+          unzip -q project.zip
+          cp -a gilbeot-monitoring-v1.07/. .
+
+      - name: Build debug APK
+        run: gradle assembleDebug --stacktrace
+
+      - name: Rename APK
+        run: |
+          mv app/build/outputs/apk/debug/app-debug.apk \
+             app/build/outputs/apk/debug/길벗모니터링-v1.07.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gilbeot-monitoring-v1.07-apk
+          path: app/build/outputs/apk/debug/길벗모니터링-v1.07.apk
+          if-no-files-found: error
