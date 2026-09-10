@@ -1,11 +1,11 @@
-name: Build Gilbeot Monitoring APK v1.16
+name: Build Gilbeot Monitoring APK v1.17
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'Gilbeot-project-v1.16.txt'
+      - 'Gilbeot-project-v1.17.txt'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -32,9 +32,9 @@ jobs:
 
       - name: Restore Android project
         run: |
-          base64 -d Gilbeot-project-v1.16.txt > project.zip
+          base64 -d Gilbeot-project-v1.17.txt > project.zip
           unzip -q project.zip
-          cp -a gilbeot-monitoring-v1.16/. .
+          cp -a gilbeot-monitoring-v1.17/. .
 
       - name: Restore permanent signing key
         env:
@@ -60,11 +60,11 @@ jobs:
       - name: Rename APK
         run: |
           mv app/build/outputs/apk/release/app-release.apk \
-             app/build/outputs/apk/release/길벗모니터링-v1.16.apk
+             app/build/outputs/apk/release/길벗모니터링-v1.17.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gilbeot-monitoring-v1.16-apk
-          path: app/build/outputs/apk/release/길벗모니터링-v1.16.apk
+          name: gilbeot-monitoring-v1.17-apk
+          path: app/build/outputs/apk/release/길벗모니터링-v1.17.apk
           if-no-files-found: error
