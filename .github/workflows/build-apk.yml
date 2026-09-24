@@ -1,11 +1,11 @@
-name: Build Gilbeot Monitoring APK v1.36
+name: Build Gilbeot Monitoring APK v1.38
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'Gilbeot-project-v1.36.txt'
+      - 'Gilbeot-project-v1.38.txt'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -30,19 +30,21 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Restore Android project v1.36
+      - name: Restore Android project v1.38
         run: |
-          base64 -d Gilbeot-project-v1.36.txt > project.zip
+          base64 -d Gilbeot-project-v1.38.txt > project.zip
           unzip -q project.zip
-          cp -a gilbeot-monitoring-v1.36/. .
+          cp -a gilbeot-monitoring-v1.38/. .
 
-      - name: Verify v1.36 metadata and no named-board priority
+      - name: Verify v1.38 source
         run: |
-          grep -q 'versionCode = 136' app/build.gradle.kts
-          grep -q 'versionName = "1.36"' app/build.gradle.kts
-          grep -q 'const val VERSION = "1.36"' app/src/main/java/com/gilbeot/monitoring/BuildInfo.kt
+          grep -q 'versionCode = 138' app/build.gradle.kts
+          grep -q 'versionName = "1.38"' app/build.gradle.kts
+          grep -q 'const val VERSION = "1.38"' app/src/main/java/com/gilbeot/monitoring/BuildInfo.kt
+          grep -q 'disappearedRecentTargets' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
+          grep -q '목록이탈검증' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
           ! grep -R -q '사진작업하는곳\|priorityBoard\|fetchNamedBoardActivityScan\|NamedBoardScanResult\|우선게시판' app/src/main/java
-          echo 'v1.36 metadata/common-board monitoring verified'
+          echo 'v1.38 source verification passed'
 
       - name: Restore permanent signing key
         env:
@@ -58,7 +60,7 @@ jobs:
           echo "$GILBEOT_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/gilbeot-release-key.jks"
           echo "GILBEOT_KEYSTORE_PATH=$RUNNER_TEMP/gilbeot-release-key.jks" >> "$GITHUB_ENV"
 
-      - name: Build signed release APK v1.36
+      - name: Build signed release APK v1.38
         env:
           GILBEOT_STORE_PASSWORD: ${{ secrets.GILBEOT_STORE_PASSWORD }}
           GILBEOT_KEY_ALIAS: ${{ secrets.GILBEOT_KEY_ALIAS }}
@@ -68,11 +70,11 @@ jobs:
       - name: Rename APK
         run: |
           mv app/build/outputs/apk/release/app-release.apk \
-             app/build/outputs/apk/release/길벗모니터링-v1.36.apk
+             app/build/outputs/apk/release/길벗모니터링-v1.38.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gilbeot-monitoring-v1.36-apk
-          path: app/build/outputs/apk/release/길벗모니터링-v1.36.apk
+          name: gilbeot-monitoring-v1.38-apk
+          path: app/build/outputs/apk/release/길벗모니터링-v1.38.apk
           if-no-files-found: error
