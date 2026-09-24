@@ -1,11 +1,11 @@
-name: Build Gilbeot Monitoring APK v1.30
+name: Build Gilbeot Monitoring APK v1.31
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'Gilbeot-project-v1.30.txt'
+      - 'Gilbeot-project-v1.31.txt'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -30,11 +30,44 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Restore Android project
+      - name: Restore Android project v1.31
         run: |
-          base64 -d Gilbeot-project-v1.30.txt > project.zip
+          base64 -d Gilbeot-project-v1.31.txt > project.zip
           unzip -q project.zip
-          cp -a gilbeot-monitoring-v1.30/. .
+          cp -a gilbeot-monitoring-v1.31/. .
+
+      - name: Fix v1.31 Kotlin escape error and version metadata
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          # Fix the exact Kotlin compile issue reported in AppScreen.kt lines 328-330:
+          # unsupported backslash escapes inside ordinary Kotlin strings.
+          p = Path('app/src/main/java/com/gilbeot/monitoring/ui/AppScreen.kt')
+          text = p.read_text(encoding='utf-8')
+          lines = text.splitlines(True)
+          for idx in range(327, min(330, len(lines))):
+              # Keep Kotlin-valid escapes, double only unsupported ones.
+              lines[idx] = re.sub(r'\\(?![tbnr\'"\\$u])', r'\\\\', lines[idx])
+          p.write_text(''.join(lines), encoding='utf-8')
+
+          # Force the package version metadata to v1.31 as a safety check.
+          g = Path('app/build.gradle.kts')
+          gradle = g.read_text(encoding='utf-8')
+          gradle = re.sub(r'versionCode\s*=\s*\d+', 'versionCode = 131', gradle)
+          gradle = re.sub(r'versionName\s*=\s*"[^"]*"', 'versionName = "1.31"', gradle)
+          g.write_text(gradle, encoding='utf-8')
+
+          print('Patched AppScreen.kt lines 328-330')
+          print('Forced versionCode=131, versionName=1.31')
+          PY
+
+          echo '--- AppScreen.kt 324-334 ---'
+          nl -ba app/src/main/java/com/gilbeot/monitoring/ui/AppScreen.kt | sed -n '324,334p'
+          echo '--- version metadata ---'
+          grep -nE 'versionCode|versionName' app/build.gradle.kts
 
       - name: Restore permanent signing key
         env:
@@ -50,7 +83,7 @@ jobs:
           echo "$GILBEOT_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/gilbeot-release-key.jks"
           echo "GILBEOT_KEYSTORE_PATH=$RUNNER_TEMP/gilbeot-release-key.jks" >> "$GITHUB_ENV"
 
-      - name: Build signed release APK
+      - name: Build signed release APK v1.31
         env:
           GILBEOT_STORE_PASSWORD: ${{ secrets.GILBEOT_STORE_PASSWORD }}
           GILBEOT_KEY_ALIAS: ${{ secrets.GILBEOT_KEY_ALIAS }}
@@ -60,11 +93,11 @@ jobs:
       - name: Rename APK
         run: |
           mv app/build/outputs/apk/release/app-release.apk \
-             app/build/outputs/apk/release/길벗모니터링-v1.30.apk
+             app/build/outputs/apk/release/길벗모니터링-v1.31.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gilbeot-monitoring-v1.30-apk
-          path: app/build/outputs/apk/release/길벗모니터링-v1.30.apk
+          name: gilbeot-monitoring-v1.31-apk
+          path: app/build/outputs/apk/release/길벗모니터링-v1.31.apk
           if-no-files-found: error
