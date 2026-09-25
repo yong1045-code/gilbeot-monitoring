@@ -1,11 +1,11 @@
-name: Build Gilbeot Monitoring APK v1.43
+name: Build Gilbeot Monitoring APK v1.44
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'Gilbeot-project-v1.43.txt'
+      - 'Gilbeot-project-v1.44.txt'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -30,27 +30,39 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Restore Android project v1.43
+      - name: Restore Android project v1.44
         run: |
-          base64 -d Gilbeot-project-v1.43.txt > project.zip
+          base64 -d Gilbeot-project-v1.44.txt > project.zip
           unzip -q project.zip
-          cp -a gilbeot-monitoring-v1.43/. .
+          cp -a gilbeot-monitoring-v1.44/. .
 
-      - name: Verify v1.43 metadata and persisted-board deletion verification
+      - name: Verify v1.44 article deletion state machine
         run: |
-          grep -q 'versionCode = 143' app/build.gradle.kts
-          grep -q 'versionName = "1.43"' app/build.gradle.kts
-          grep -q 'const val VERSION = "1.43"' app/src/main/java/com/gilbeot/monitoring/BuildInfo.kt
-          grep -q 'gilbeot_monitor.db", null, 6' app/src/main/java/com/gilbeot/monitoring/data/LocalStore.kt
-          grep -q 'menu_id INTEGER NOT NULL DEFAULT 0' app/src/main/java/com/gilbeot/monitoring/data/LocalStore.kt
-          grep -q 'articleMenuIds' app/src/main/java/com/gilbeot/monitoring/data/LocalStore.kt
-          grep -q 'articleBoardNames' app/src/main/java/com/gilbeot/monitoring/data/LocalStore.kt
-          grep -q 'resolveMenuIdsByBoardNames' app/src/main/java/com/gilbeot/monitoring/monitor/NaverCafeDataSource.kt
-          grep -q '저장게시판검증' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
-          grep -q '게시판ID복구' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
-          grep -q 'forceDual: Boolean = false' app/src/main/java/com/gilbeot/monitoring/monitor/NaverCafeDataSource.kt
+          grep -q 'versionCode = 144' app/build.gradle.kts
+          grep -q 'versionName = "1.44"' app/build.gradle.kts
+          grep -q 'const val VERSION = "1.44"' app/src/main/java/com/gilbeot/monitoring/BuildInfo.kt
+          grep -q 'val recentListReliable = recent.size >= 80' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
+          grep -q 'val listAbsenceSignals' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
+          grep -q '게시글부재누적' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
+          grep -q 'fun clearArticleMiss' app/src/main/java/com/gilbeot/monitoring/data/LocalStore.kt
+          ! grep -q 'store.confirmArticleDeleted' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
           ! grep -R -q '사진작업하는곳\|priorityBoard\|fetchNamedBoardActivityScan\|NamedBoardScanResult\|우선게시판' app/src/main/java
-          echo 'v1.43 metadata/persisted-board deletion verification passed'
+          python3 - <<'PY'
+          from pathlib import Path
+          store = Path('app/src/main/java/com/gilbeot/monitoring/data/LocalStore.kt').read_text(encoding='utf-8')
+          collector = Path('app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt').read_text(encoding='utf-8')
+          # 상세 성공이 게시글 삭제 miss를 초기화하면 v1.43 문제가 재발합니다.
+          detail_fn = store.split('fun markArticleDetailSeen', 1)[1].split('fun clearArticleMiss', 1)[0]
+          assert 'put("miss_count", 0)' not in detail_fn
+          upsert_detail = store.split('if (detailSeen) {', 1)[1].split('}', 1)[0]
+          assert 'put(\"miss_count\"' not in upsert_detail
+          # 목록 부재가 존재 신호보다 먼저 판정되어 stale 목록/본문 응답이 miss를 지우지 못해야 합니다.
+          decision = collector.split('// v1.44 게시글 삭제 상태머신.', 1)[1].split('store.purgeExpiredNormalBodies', 1)[0]
+          assert decision.index('articleId in listAbsenceSignals') < decision.index('articleId in listPresenceSignals')
+          assert 'store.registerArticleMiss' in decision
+          assert 'store.clearArticleMiss' in decision
+          print('v1.44 list-based article deletion state machine verified')
+          PY
 
       - name: Restore permanent signing key
         env:
@@ -66,7 +78,7 @@ jobs:
           echo "$GILBEOT_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/gilbeot-release-key.jks"
           echo "GILBEOT_KEYSTORE_PATH=$RUNNER_TEMP/gilbeot-release-key.jks" >> "$GITHUB_ENV"
 
-      - name: Build signed release APK v1.43
+      - name: Build signed release APK v1.44
         env:
           GILBEOT_STORE_PASSWORD: ${{ secrets.GILBEOT_STORE_PASSWORD }}
           GILBEOT_KEY_ALIAS: ${{ secrets.GILBEOT_KEY_ALIAS }}
@@ -76,11 +88,11 @@ jobs:
       - name: Rename APK
         run: |
           mv app/build/outputs/apk/release/app-release.apk \
-             app/build/outputs/apk/release/길벗모니터링-v1.43.apk
+             app/build/outputs/apk/release/길벗모니터링-v1.44.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gilbeot-monitoring-v1.43-apk
-          path: app/build/outputs/apk/release/길벗모니터링-v1.43.apk
+          name: gilbeot-monitoring-v1.44-apk
+          path: app/build/outputs/apk/release/길벗모니터링-v1.44.apk
           if-no-files-found: error
