@@ -1,11 +1,11 @@
-name: Build Gilbeot Monitoring APK v1.42
+name: Build Gilbeot Monitoring APK v1.43
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'Gilbeot-project-v1.42.txt'
+      - 'Gilbeot-project-v1.43.txt'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -30,24 +30,27 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Restore Android project v1.42
+      - name: Restore Android project v1.43
         run: |
-          base64 -d Gilbeot-project-v1.42.txt > project.zip
+          base64 -d Gilbeot-project-v1.43.txt > project.zip
           unzip -q project.zip
-          cp -a gilbeot-monitoring-v1.42/. .
+          cp -a gilbeot-monitoring-v1.43/. .
 
-      - name: Verify v1.42 metadata and cross-check deletion logic
+      - name: Verify v1.43 metadata and persisted-board deletion verification
         run: |
-          grep -q 'versionCode = 142' app/build.gradle.kts
-          grep -q 'versionName = "1.42"' app/build.gradle.kts
-          grep -q 'const val VERSION = "1.42"' app/src/main/java/com/gilbeot/monitoring/BuildInfo.kt
-          grep -q 'newArticlesForDeletionWatch' app/src/main/java/com/gilbeot/monitoring/data/LocalStore.kt
-          grep -q 'fetchBoardPresenceSnapshot' app/src/main/java/com/gilbeot/monitoring/monitor/NaverCafeDataSource.kt
-          grep -q 'probeArticlePage' app/src/main/java/com/gilbeot/monitoring/monitor/NaverCafeDataSource.kt
-          grep -q '신규글교차검증' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
-          grep -q '존재응답충돌' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
+          grep -q 'versionCode = 143' app/build.gradle.kts
+          grep -q 'versionName = "1.43"' app/build.gradle.kts
+          grep -q 'const val VERSION = "1.43"' app/src/main/java/com/gilbeot/monitoring/BuildInfo.kt
+          grep -q 'gilbeot_monitor.db", null, 6' app/src/main/java/com/gilbeot/monitoring/data/LocalStore.kt
+          grep -q 'menu_id INTEGER NOT NULL DEFAULT 0' app/src/main/java/com/gilbeot/monitoring/data/LocalStore.kt
+          grep -q 'articleMenuIds' app/src/main/java/com/gilbeot/monitoring/data/LocalStore.kt
+          grep -q 'articleBoardNames' app/src/main/java/com/gilbeot/monitoring/data/LocalStore.kt
+          grep -q 'resolveMenuIdsByBoardNames' app/src/main/java/com/gilbeot/monitoring/monitor/NaverCafeDataSource.kt
+          grep -q '저장게시판검증' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
+          grep -q '게시판ID복구' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
+          grep -q 'forceDual: Boolean = false' app/src/main/java/com/gilbeot/monitoring/monitor/NaverCafeDataSource.kt
           ! grep -R -q '사진작업하는곳\|priorityBoard\|fetchNamedBoardActivityScan\|NamedBoardScanResult\|우선게시판' app/src/main/java
-          echo 'v1.42 metadata/cross-check deletion verification passed'
+          echo 'v1.43 metadata/persisted-board deletion verification passed'
 
       - name: Restore permanent signing key
         env:
@@ -63,7 +66,7 @@ jobs:
           echo "$GILBEOT_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/gilbeot-release-key.jks"
           echo "GILBEOT_KEYSTORE_PATH=$RUNNER_TEMP/gilbeot-release-key.jks" >> "$GITHUB_ENV"
 
-      - name: Build signed release APK v1.42
+      - name: Build signed release APK v1.43
         env:
           GILBEOT_STORE_PASSWORD: ${{ secrets.GILBEOT_STORE_PASSWORD }}
           GILBEOT_KEY_ALIAS: ${{ secrets.GILBEOT_KEY_ALIAS }}
@@ -73,11 +76,11 @@ jobs:
       - name: Rename APK
         run: |
           mv app/build/outputs/apk/release/app-release.apk \
-             app/build/outputs/apk/release/길벗모니터링-v1.42.apk
+             app/build/outputs/apk/release/길벗모니터링-v1.43.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gilbeot-monitoring-v1.42-apk
-          path: app/build/outputs/apk/release/길벗모니터링-v1.42.apk
+          name: gilbeot-monitoring-v1.43-apk
+          path: app/build/outputs/apk/release/길벗모니터링-v1.43.apk
           if-no-files-found: error
