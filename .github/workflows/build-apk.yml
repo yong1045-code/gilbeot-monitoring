@@ -1,11 +1,11 @@
-name: Build Gilbeot Monitoring APK v1.39
+name: Build Gilbeot Monitoring APK v1.40
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'Gilbeot-project-v1.39.txt'
+      - 'Gilbeot-project-v1.40.txt'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -30,24 +30,27 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Restore Android project v1.39
+      - name: Restore Android project v1.40
         run: |
-          base64 -d Gilbeot-project-v1.39.txt > project.zip
+          base64 -d Gilbeot-project-v1.40.txt > project.zip
           unzip -q project.zip
-          cp -a gilbeot-monitoring-v1.39/. .
+          cp -a gilbeot-monitoring-v1.40/. .
 
-      - name: Verify v1.39 source
+      - name: Verify v1.40 source
         run: |
-          grep -q 'versionCode = 139' app/build.gradle.kts
-          grep -q 'versionName = "1.39"' app/build.gradle.kts
-          grep -q 'const val VERSION = "1.39"' app/src/main/java/com/gilbeot/monitoring/BuildInfo.kt
+          grep -q 'versionCode = 140' app/build.gradle.kts
+          grep -q 'versionName = "1.40"' app/build.gradle.kts
+          grep -q 'const val VERSION = "1.40"' app/src/main/java/com/gilbeot/monitoring/BuildInfo.kt
           grep -q 'class TransientAuthException' app/src/main/java/com/gilbeot/monitoring/monitor/NaverCafeDataSource.kt
           grep -q 'verifyCafeSession' app/src/main/java/com/gilbeot/monitoring/monitor/NaverCafeDataSource.kt
           grep -q 'jsonSaysUnauthorized' app/src/main/java/com/gilbeot/monitoring/monitor/NaverCafeDataSource.kt
           grep -q 'API 일시 인증오류' app/src/main/java/com/gilbeot/monitoring/monitor/MonitorService.kt
           grep -q 'disappearedRecentTargets' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
+          grep -q 'articlesForRapidFollowUp' app/src/main/java/com/gilbeot/monitoring/data/LocalStore.kt
+          grep -q '신규집중추적' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
+          grep -q 'commentFirstSeenSince' app/src/main/java/com/gilbeot/monitoring/data/LocalStore.kt
           ! grep -R -q '사진작업하는곳\|priorityBoard\|fetchNamedBoardActivityScan\|NamedBoardScanResult\|우선게시판' app/src/main/java
-          echo 'v1.39 source verification passed'
+          echo 'v1.40 source verification passed'
 
       - name: Restore permanent signing key
         env:
@@ -63,7 +66,7 @@ jobs:
           echo "$GILBEOT_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/gilbeot-release-key.jks"
           echo "GILBEOT_KEYSTORE_PATH=$RUNNER_TEMP/gilbeot-release-key.jks" >> "$GITHUB_ENV"
 
-      - name: Build signed release APK v1.39
+      - name: Build signed release APK v1.40
         env:
           GILBEOT_STORE_PASSWORD: ${{ secrets.GILBEOT_STORE_PASSWORD }}
           GILBEOT_KEY_ALIAS: ${{ secrets.GILBEOT_KEY_ALIAS }}
@@ -73,11 +76,11 @@ jobs:
       - name: Rename APK
         run: |
           mv app/build/outputs/apk/release/app-release.apk \
-             app/build/outputs/apk/release/길벗모니터링-v1.39.apk
+             app/build/outputs/apk/release/길벗모니터링-v1.40.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gilbeot-monitoring-v1.39-apk
-          path: app/build/outputs/apk/release/길벗모니터링-v1.39.apk
+          name: gilbeot-monitoring-v1.40-apk
+          path: app/build/outputs/apk/release/길벗모니터링-v1.40.apk
           if-no-files-found: error
