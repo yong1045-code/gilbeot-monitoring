@@ -1,11 +1,11 @@
-name: Build Gilbeot Monitoring APK v1.46
+name: Build Gilbeot Monitoring APK v2.10
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'Gilbeot-project-v1.46.txt'
+      - 'Gilbeot-project-v2.10.txt'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -30,19 +30,19 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Restore Android project v1.46
+      - name: Restore Android project v2.10
         run: |
-          base64 -d Gilbeot-project-v1.46.txt > project.zip
+          base64 -d Gilbeot-project-v2.10.txt > project.zip
           unzip -q project.zip
-          cp -a gilbeot-monitoring-v1.46/. .
+          cp -a gilbeot-monitoring-v2.10/. .
 
-      - name: Verify v1.46 features
+      - name: Verify v2.10 features and embedded Supabase config
         run: |
-          grep -q 'versionCode = 146' app/build.gradle.kts
-          grep -q 'versionName = "1.46"' app/build.gradle.kts
-          grep -q 'const val VERSION = "1.46"' app/src/main/java/com/gilbeot/monitoring/BuildInfo.kt
-          grep -q 'SUPABASE_URL' app/build.gradle.kts
-          grep -q 'SUPABASE_PUBLISHABLE_KEY' app/build.gradle.kts
+          grep -q 'versionCode = 210' app/build.gradle.kts
+          grep -q 'versionName = "2.10"' app/build.gradle.kts
+          grep -q 'const val VERSION = "2.10"' app/src/main/java/com/gilbeot/monitoring/BuildInfo.kt
+          grep -q 'https://imosbavhizihxxlkxoci.supabase.co' app/build.gradle.kts
+          grep -q 'sb_publishable_' app/build.gradle.kts
           grep -q 'object SupabaseSyncManager' app/src/main/java/com/gilbeot/monitoring/sync/SupabaseSyncManager.kt
           grep -q 'provider.*google' app/src/main/java/com/gilbeot/monitoring/sync/SupabaseSyncManager.kt
           grep -q 'gilbeot_device_snapshots' app/src/main/java/com/gilbeot/monitoring/sync/SupabaseSyncManager.kt
@@ -52,18 +52,7 @@ jobs:
           grep -q 'val recentListReliable = recent.size >= 80' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
           ! grep -R -q 'GoogleDriveSyncManager\|DRIVE_APPFOLDER\|appDataFolder' app/src/main/java
           ! grep -R -q '사진작업하는곳\|priorityBoard\|우선게시판' app/src/main/java
-          echo 'v1.46 static feature checks passed'
-
-      - name: Check Supabase build configuration
-        env:
-          GILBEOT_SUPABASE_URL: ${{ secrets.GILBEOT_SUPABASE_URL }}
-          GILBEOT_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.GILBEOT_SUPABASE_PUBLISHABLE_KEY }}
-        run: |
-          if [ -z "$GILBEOT_SUPABASE_URL" ] || [ -z "$GILBEOT_SUPABASE_PUBLISHABLE_KEY" ]; then
-            echo '::warning::Supabase secrets are missing. APK will build, but Google cloud sync will remain disabled until the two secrets are added and APK is rebuilt.'
-          else
-            echo 'Supabase configuration found.'
-          fi
+          echo 'v2.10 static feature checks passed'
 
       - name: Restore permanent signing key
         env:
@@ -79,23 +68,21 @@ jobs:
           echo "$GILBEOT_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/gilbeot-release-key.jks"
           echo "GILBEOT_KEYSTORE_PATH=$RUNNER_TEMP/gilbeot-release-key.jks" >> "$GITHUB_ENV"
 
-      - name: Build signed release APK v1.46
+      - name: Build signed release APK v2.10
         env:
           GILBEOT_STORE_PASSWORD: ${{ secrets.GILBEOT_STORE_PASSWORD }}
           GILBEOT_KEY_ALIAS: ${{ secrets.GILBEOT_KEY_ALIAS }}
           GILBEOT_KEY_PASSWORD: ${{ secrets.GILBEOT_KEY_PASSWORD }}
-          GILBEOT_SUPABASE_URL: ${{ secrets.GILBEOT_SUPABASE_URL }}
-          GILBEOT_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.GILBEOT_SUPABASE_PUBLISHABLE_KEY }}
         run: gradle assembleRelease --stacktrace
 
       - name: Rename APK
         run: |
           mv app/build/outputs/apk/release/app-release.apk \
-             app/build/outputs/apk/release/길벗모니터링-v1.46.apk
+             app/build/outputs/apk/release/길벗모니터링-v2.10.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gilbeot-monitoring-v1.46-apk
-          path: app/build/outputs/apk/release/길벗모니터링-v1.46.apk
+          name: gilbeot-monitoring-v2.10-apk
+          path: app/build/outputs/apk/release/길벗모니터링-v2.10.apk
           if-no-files-found: error
