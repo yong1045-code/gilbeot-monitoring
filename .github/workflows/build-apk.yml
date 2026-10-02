@@ -1,11 +1,11 @@
-name: Build Gilbeot Monitoring APK v2.13
+name: Build Gilbeot Monitoring APK v2.14
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'Gilbeot-project-v2.13.txt'
+      - 'Gilbeot-project-v2.14.txt'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -30,17 +30,17 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Restore Android project v2.13
+      - name: Restore Android project v2.14
         run: |
-          base64 -d Gilbeot-project-v2.13.txt > project.zip
+          base64 -d Gilbeot-project-v2.14.txt > project.zip
           unzip -q project.zip
-          cp -a gilbeot-monitoring-v2.13/. .
+          cp -a gilbeot-monitoring-v2.14/. .
 
-      - name: Verify v2.13 sync, realtime and deletion features
+      - name: Verify v2.14 sync, realtime and deletion features
         run: |
-          grep -q 'versionCode = 213' app/build.gradle.kts
-          grep -q 'versionName = "2.13"' app/build.gradle.kts
-          grep -q 'const val VERSION = "2.13"' app/src/main/java/com/gilbeot/monitoring/BuildInfo.kt
+          grep -q 'versionCode = 214' app/build.gradle.kts
+          grep -q 'versionName = "2.14"' app/build.gradle.kts
+          grep -q 'const val VERSION = "2.14"' app/src/main/java/com/gilbeot/monitoring/BuildInfo.kt
           grep -q 'https://imosbavhizihxxlkxoci.supabase.co' app/build.gradle.kts
           grep -q 'sb_publishable_' app/build.gradle.kts
           grep -q 'AUTO_SYNC_INTERVAL_MS = 3L \* 60L \* 60_000L' app/src/main/java/com/gilbeot/monitoring/sync/SupabaseSyncManager.kt
@@ -63,7 +63,26 @@ jobs:
           grep -q '"${supabaseUrl()}/realtime/v1/websocket".toHttpUrl()' app/src/main/java/com/gilbeot/monitoring/sync/SupabaseSyncManager.kt
           ! grep -q 'replaceFirst("https://", "wss://")' app/src/main/java/com/gilbeot/monitoring/sync/SupabaseSyncManager.kt
           grep -q 'Realtime 연결 준비 실패' app/src/main/java/com/gilbeot/monitoring/sync/SupabaseSyncManager.kt
-          echo 'v2.13 static feature checks passed'
+          # Timestamp comparisons must be numeric: SQLite binds rawQuery arguments as TEXT.
+          python3 - <<'PYSQL'
+          from pathlib import Path
+          import re, sqlite3
+          source=Path('app/src/main/java/com/gilbeot/monitoring/data/LocalStore.kt').read_text()
+          assert len(re.findall(r'COALESCE\([^\n]*?\)(?:>=|<=)CAST\(\? AS INTEGER\)', source))==6
+          assert not re.search(r'COALESCE\([^\n]*?\)(?:>=|<=)\?', source)
+          db=sqlite3.connect(':memory:')
+          db.execute('create table articles(cafe_slug text, deleted_at integer, remote_deleted_at integer, record_removed_at integer)')
+          db.execute('create table comments(cafe_slug text, deleted_at integer, remote_deleted_at integer, record_removed_at integer, deleted_because_article_gone integer)')
+          now=1790878697000; start=1790800000000
+          db.executemany('insert into articles values(?,?,?,?)',[('roadclubs',now,None,None),('roadclubs',None,now,None),('roadclubs',now,None,now)])
+          db.executemany('insert into comments values(?,?,?,?,?)',[('roadclubs',now,None,None,0),('roadclubs',None,now,None,0),('roadclubs',now,None,now,0)])
+          qa='select count(*) from articles where cafe_slug=? and coalesce(remote_deleted_at,deleted_at)>=CAST(? AS INTEGER) and record_removed_at is null'
+          qc='select count(*) from comments where cafe_slug=? and coalesce(remote_deleted_at,case when deleted_at is not null and deleted_because_article_gone=0 then deleted_at end)>=CAST(? AS INTEGER) and record_removed_at is null'
+          assert db.execute(qa,('roadclubs',str(start))).fetchone()[0]==2
+          assert db.execute(qc,('roadclubs',str(start))).fetchone()[0]==2
+          print('v2.14 SQLite deletion counts: PASS')
+          PYSQL
+          echo 'v2.14 static feature checks passed'
 
       - name: Restore permanent signing key
         env:
@@ -79,7 +98,7 @@ jobs:
           echo "$GILBEOT_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/gilbeot-release-key.jks"
           echo "GILBEOT_KEYSTORE_PATH=$RUNNER_TEMP/gilbeot-release-key.jks" >> "$GITHUB_ENV"
 
-      - name: Build signed release APK v2.13
+      - name: Build signed release APK v2.14
         env:
           GILBEOT_STORE_PASSWORD: ${{ secrets.GILBEOT_STORE_PASSWORD }}
           GILBEOT_KEY_ALIAS: ${{ secrets.GILBEOT_KEY_ALIAS }}
@@ -89,11 +108,11 @@ jobs:
       - name: Rename APK
         run: |
           mv app/build/outputs/apk/release/app-release.apk \
-             app/build/outputs/apk/release/길벗모니터링-v2.13.apk
+             app/build/outputs/apk/release/길벗모니터링-v2.14.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gilbeot-monitoring-v2.13-apk
-          path: app/build/outputs/apk/release/길벗모니터링-v2.13.apk
+          name: gilbeot-monitoring-v2.14-apk
+          path: app/build/outputs/apk/release/길벗모니터링-v2.14.apk
           if-no-files-found: error
