@@ -1,11 +1,11 @@
-name: Build Gilbeot Monitoring APK v2.19
+name: Build Gilbeot Monitoring APK v2.20
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'Gilbeot-project-v2.19.txt'
+      - 'Gilbeot-project-v2.20.txt'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -30,17 +30,17 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Restore Android project v2.19
+      - name: Restore Android project v2.20
         run: |
-          base64 -d Gilbeot-project-v2.19.txt > project.zip
+          base64 -d Gilbeot-project-v2.20.txt > project.zip
           unzip -q project.zip
-          cp -a gilbeot-monitoring-v2.19/. .
+          cp -a gilbeot-monitoring-v2.20/. .
 
-      - name: Verify v2.19 session-expiry alerts, sync and deletion features
+      - name: Verify v2.20 session-expiry alerts, sync and deletion features
         run: |
-          grep -q 'versionCode = 219' app/build.gradle.kts
-          grep -q 'versionName = "2.19"' app/build.gradle.kts
-          grep -q 'const val VERSION = "2.19"' app/src/main/java/com/gilbeot/monitoring/BuildInfo.kt
+          grep -q 'versionCode = 220' app/build.gradle.kts
+          grep -q 'versionName = "2.20"' app/build.gradle.kts
+          grep -q 'const val VERSION = "2.20"' app/src/main/java/com/gilbeot/monitoring/BuildInfo.kt
           grep -q 'markNaverSessionExpired' app/src/main/java/com/gilbeot/monitoring/monitor/MonitorState.kt
           grep -q 'notifyNaverSessionExpired' app/src/main/java/com/gilbeot/monitoring/monitor/IssueNotifier.kt
           grep -q '세션 만료 · 네이버 재로그인 필요' app/src/main/java/com/gilbeot/monitoring/monitor/MonitorService.kt
@@ -49,7 +49,6 @@ jobs:
           grep -q 'isNaverSessionExpired' app/src/main/java/com/gilbeot/monitoring/MainActivity.kt
           grep -q '회차당 상세는 최대 12개' app/src/main/java/com/gilbeot/monitoring/ui/AppScreen.kt
           grep -q '회차당 상세는 최대 28개' app/src/main/java/com/gilbeot/monitoring/ui/AppScreen.kt
-          grep -q 'v2.19는 신규글을 발견한 회차에 글자 본문을 먼저 저장' app/src/main/java/com/gilbeot/monitoring/ui/AppScreen.kt
           grep -q 'https://imosbavhizihxxlkxoci.supabase.co' app/build.gradle.kts
           grep -q 'sb_publishable_' app/build.gradle.kts
           grep -q 'AUTO_SYNC_INTERVAL_MS = 3L \* 60L \* 60_000L' app/src/main/java/com/gilbeot/monitoring/sync/SupabaseSyncManager.kt
@@ -72,7 +71,7 @@ jobs:
           grep -q '"${supabaseUrl()}/realtime/v1/websocket".toHttpUrl()' app/src/main/java/com/gilbeot/monitoring/sync/SupabaseSyncManager.kt
           ! grep -q 'replaceFirst("https://", "wss://")' app/src/main/java/com/gilbeot/monitoring/sync/SupabaseSyncManager.kt
           grep -q 'Realtime 연결 준비 실패' app/src/main/java/com/gilbeot/monitoring/sync/SupabaseSyncManager.kt
-          # v2.19: keep v2.18 low-data scheduling while fixing body preservation.
+          # v2.20: keep v2.18 low-data scheduling while fixing body preservation.
           grep -q 'broadScanIntervalMs' app/src/main/java/com/gilbeot/monitoring/monitor/MonitorPreferences.kt
           grep -q 'if (dataOptimized) 15L \* 60L \* 1000L else 5L \* 60L \* 1000L' app/src/main/java/com/gilbeot/monitoring/monitor/MonitorPreferences.kt
           grep -q 'if (dataOptimized) 10L \* 60L \* 1000L else 3L \* 60L \* 1000L' app/src/main/java/com/gilbeot/monitoring/monitor/MonitorPreferences.kt
@@ -91,10 +90,20 @@ jobs:
           grep -q 'body_text IS NOT NULL' app/src/main/java/com/gilbeot/monitoring/data/LocalStore.kt
           grep -q 'body_text IS NULL' app/src/main/java/com/gilbeot/monitoring/data/LocalStore.kt
           grep -q '본문저장완료' app/src/main/java/com/gilbeot/monitoring/monitor/NaverCafeDataSource.kt
-          grep -q 'v2.19는 신규글을 발견한 회차에 글자 본문을 먼저 저장' app/src/main/java/com/gilbeot/monitoring/ui/AppScreen.kt
           grep -q 'ORDER BY CASE WHEN body_text IS NULL THEN 0 ELSE 1 END, last_detail_at ASC' app/src/main/java/com/gilbeot/monitoring/data/LocalStore.kt
           grep -q 'registerArticleMiss' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
           grep -q 'registerCommentMiss' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
+          # v2.20: transient detail/API errors recover before becoming user-visible failures.
+          grep -q 'private val deferredDetailTargets = linkedSetOf<Long>()' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
+          grep -q 'private var allDetailFailureStreak = 0' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
+          grep -q 'sameCycleDetailRetryBudget = if (dataOptimized) 2 else 4' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
+          grep -q '상세 자동복구 대기' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
+          grep -q '상세/댓글 지속 실패' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
+          grep -q '상세재확인' app/src/main/java/com/gilbeot/monitoring/monitor/CafeCollector.kt
+          grep -q 'runCollectorWithRecoveryRetry' app/src/main/java/com/gilbeot/monitoring/monitor/MonitorService.kt
+          grep -q 'transientAuthRetries >= 2' app/src/main/java/com/gilbeot/monitoring/monitor/MonitorService.kt
+          grep -q 'apiRetries >= 1' app/src/main/java/com/gilbeot/monitoring/monitor/MonitorService.kt
+          grep -q 'v2.20은 신규글 글자 본문 우선 저장과 데이터 절약 구조를 유지하면서' app/src/main/java/com/gilbeot/monitoring/ui/AppScreen.kt
           # Timestamp comparisons must be numeric: SQLite binds rawQuery arguments as TEXT.
           python3 - <<'PYSQL'
           from pathlib import Path
@@ -112,9 +121,9 @@ jobs:
           qc='select count(*) from comments where cafe_slug=? and coalesce(remote_deleted_at,case when deleted_at is not null and deleted_because_article_gone=0 then deleted_at end)>=CAST(? AS INTEGER) and record_removed_at is null'
           assert db.execute(qa,('roadclubs',str(start))).fetchone()[0]==2
           assert db.execute(qc,('roadclubs',str(start))).fetchone()[0]==2
-          print('v2.19 SQLite deletion counts: PASS')
+          print('v2.20 SQLite deletion counts: PASS')
 
-          # v2.19 fixed-size maintenance detail sweep still prioritizes missing bodies.
+          # v2.20 fixed-size maintenance detail sweep still prioritizes missing bodies.
           db.execute('create table body_articles(cafe_slug text, article_id integer, deleted_at integer, body_text text, created_at integer, last_detail_at integer)')
           minute=60_000; day=86_400_000
           rows=[
@@ -128,9 +137,9 @@ jobs:
           qs="""select article_id from body_articles where cafe_slug=? and deleted_at is null and created_at>=? order by case when body_text is null then 0 else 1 end, last_detail_at asc, article_id desc limit ?"""
           got=[r[0] for r in db.execute(qs,('roadclubs',cutoff,2))]
           assert set(got)=={1,3}, got
-          print('v2.19 maintenance detail-sweep body priority: PASS')
+          print('v2.20 maintenance detail-sweep body priority: PASS')
 
-          # v2.19 recent-body retry query: NULL only; empty string is already stored.
+          # v2.20 recent-body retry query: NULL only; empty string is already stored.
           db.execute('create table retry_articles(cafe_slug text, article_id integer, deleted_at integer, is_baseline integer, body_text text, first_seen_at integer, created_at integer)')
           rows=[
               ('roadclubs',10,None,0,None,now-5*minute,now-5*minute),
@@ -143,9 +152,9 @@ jobs:
           qr="""select article_id from retry_articles where cafe_slug=? and deleted_at is null and is_baseline=0 and body_text is null and first_seen_at>=? and (created_at<=0 or created_at>=?) order by first_seen_at asc, article_id asc limit ?"""
           got=[r[0] for r in db.execute(qr,('roadclubs',now-30*minute,now-6*60*minute,10))]
           assert got==[10], got
-          print('v2.19 limited new-body retry SQL: PASS')
+          print('v2.20 limited new-body retry SQL: PASS')
           PYSQL
-          echo 'v2.19 static feature checks passed'
+          echo 'v2.20 static feature checks passed'
 
       - name: Restore permanent signing key
         env:
@@ -161,7 +170,7 @@ jobs:
           echo "$GILBEOT_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/gilbeot-release-key.jks"
           echo "GILBEOT_KEYSTORE_PATH=$RUNNER_TEMP/gilbeot-release-key.jks" >> "$GITHUB_ENV"
 
-      - name: Build signed release APK v2.19
+      - name: Build signed release APK v2.20
         env:
           GILBEOT_STORE_PASSWORD: ${{ secrets.GILBEOT_STORE_PASSWORD }}
           GILBEOT_KEY_ALIAS: ${{ secrets.GILBEOT_KEY_ALIAS }}
@@ -171,11 +180,11 @@ jobs:
       - name: Rename APK
         run: |
           mv app/build/outputs/apk/release/app-release.apk \
-             app/build/outputs/apk/release/길벗모니터링-v2.19.apk
+             app/build/outputs/apk/release/길벗모니터링-v2.20.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gilbeot-monitoring-v2.19-apk
-          path: app/build/outputs/apk/release/길벗모니터링-v2.19.apk
+          name: gilbeot-monitoring-v2.20-apk
+          path: app/build/outputs/apk/release/길벗모니터링-v2.20.apk
           if-no-files-found: error
