@@ -1,11 +1,11 @@
-name: Build Gilbeot Monitoring APK v2.21
+name: Build Gilbeot Monitoring APK v2.22
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'Gilbeot-project-v2.21.txt'
+      - 'Gilbeot-project-v2.22.txt'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -30,15 +30,15 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Restore Android project v2.21
+      - name: Restore Android project v2.22
         run: |
           set -e
-          test -f Gilbeot-project-v2.21.txt
-          base64 -d Gilbeot-project-v2.21.txt > project.zip
+          test -f Gilbeot-project-v2.22.txt
+          base64 -d Gilbeot-project-v2.22.txt > project.zip
           unzip -tq project.zip
           unzip -q project.zip
-          test -d gilbeot-monitoring-v2.21
-          cp -a gilbeot-monitoring-v2.21/. .
+          test -d gilbeot-monitoring-v2.22
+          cp -a gilbeot-monitoring-v2.22/. .
           test -f app/build.gradle.kts
           test -f settings.gradle.kts
           echo "Project restore OK"
@@ -46,10 +46,10 @@ jobs:
       - name: Check version only
         run: |
           set -e
-          grep -Fq 'versionCode = 221' app/build.gradle.kts
-          grep -Fq 'versionName = "2.21"' app/build.gradle.kts
+          grep -Fq 'versionCode = 222' app/build.gradle.kts
+          grep -Fq 'versionName = "2.22"' app/build.gradle.kts
           grep -Fq 'const val VERSION = "2.21"' app/src/main/java/com/gilbeot/monitoring/BuildInfo.kt
-          echo "v2.21 version check OK"
+          echo "v2.22 version check OK"
 
       - name: Restore permanent signing key
         env:
@@ -66,7 +66,7 @@ jobs:
           echo "$GILBEOT_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/gilbeot-release-key.jks"
           echo "GILBEOT_KEYSTORE_PATH=$RUNNER_TEMP/gilbeot-release-key.jks" >> "$GITHUB_ENV"
 
-      - name: Build signed release APK v2.21
+      - name: Build signed release APK v2.22
         env:
           GILBEOT_STORE_PASSWORD: ${{ secrets.GILBEOT_STORE_PASSWORD }}
           GILBEOT_KEY_ALIAS: ${{ secrets.GILBEOT_KEY_ALIAS }}
@@ -78,11 +78,11 @@ jobs:
           set -e
           test -f app/build/outputs/apk/release/app-release.apk
           mv app/build/outputs/apk/release/app-release.apk \
-             app/build/outputs/apk/release/길벗모니터링-v2.21.apk
+             app/build/outputs/apk/release/길벗모니터링-v2.22.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gilbeot-monitoring-v2.21-apk
-          path: app/build/outputs/apk/release/길벗모니터링-v2.21.apk
+          name: gilbeot-monitoring-v2.22-apk
+          path: app/build/outputs/apk/release/길벗모니터링-v2.22.apk
           if-no-files-found: error
