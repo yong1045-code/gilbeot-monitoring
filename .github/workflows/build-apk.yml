@@ -47,7 +47,7 @@ jobs:
         run: |
           set -e
           grep -Fq 'versionCode = 223' app/build.gradle.kts
-          grep -Fq 'versionName = "2.22"' app/build.gradle.kts
+          grep -Fq 'versionName = "2.23"' app/build.gradle.kts
           grep -Fq 'const val VERSION = "2.23"' app/src/main/java/com/gilbeot/monitoring/BuildInfo.kt
           echo "v2.23 version check OK"
 
